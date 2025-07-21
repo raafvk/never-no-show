@@ -87,7 +87,7 @@ export default function TenantCheckPage() {
       } else {
         setErrors({ general: result.message });
       }
-    } catch (error) {
+    } catch {
       setErrors({ general: 'Something went wrong. Please try again.' });
     } finally {
       setIsSubmitting(false);

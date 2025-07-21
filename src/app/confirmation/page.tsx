@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function ConfirmationPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -25,7 +27,7 @@ export default function ConfirmationPage() {
           </h1>
           
           <p className="text-gray-600 mb-6">
-            Your information has been submitted successfully. We'll notify your landlord with 
+            Your information has been submitted successfully. We&apos;ll notify your landlord with 
             your credibility assessment and they will be in touch with you soon.
           </p>
 
@@ -33,17 +35,17 @@ export default function ConfirmationPage() {
             <h2 className="text-sm font-medium text-blue-800 mb-2">What happens next?</h2>
             <ul className="text-sm text-blue-700 space-y-1">
               <li>• Your landlord will receive a detailed report</li>
-              <li>• They'll be notified about your credibility score</li>
+              <li>• They&apos;ll be notified about your credibility score</li>
               <li>• You should hear back within 24-48 hours</li>
             </ul>
           </div>
 
-          <a
+          <Link
             href="/"
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             Back to Home
-          </a>
+          </Link>
         </div>
       </div>
     </div>
