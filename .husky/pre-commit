@@ -1,5 +1,15 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-npm run lint
-npm run build
+echo "🔍 Running pre-commit checks..."
+
+# Run the comprehensive test that includes linting, type-checking, and building
+echo "🧪 Running full test suite (lint + type-check + build)..."
+npm run test:build
+
+if [ $? -eq 0 ]; then
+    echo "✅ All checks passed! Proceeding with commit."
+else
+    echo "❌ Pre-commit checks failed. Please fix the issues above."
+    exit 1
+fi
