@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TenantFormData, FormErrors, SubmissionResponse } from '@/types';
 import { validateForm, sanitizeInput } from '@/utils/scoring';
 
-export default function TenantCheckPage() {
+function TenantCheckForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const landlordId = searchParams.get('landlord');
@@ -246,5 +246,24 @@ export default function TenantCheckPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+        <p className="mt-2 text-gray-600">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function TenantCheckPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <TenantCheckForm />
+    </Suspense>
   );
 }
