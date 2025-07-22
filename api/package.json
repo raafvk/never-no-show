@@ -1,0 +1,15 @@
+{
+  "name": "nevernoshow-api",
+  "version": "1.0.0",
+  "description": "Azure Functions for NeverNoShow app",
+  "scripts": {
+    "start": "func start",
+    "test": "echo \"No tests yet...\""
+  },
+  "dependencies": {
+    "@azure/functions": "^4.0.0"
+  },
+  "devDependencies": {
+    "azure-functions-core-tools": "^4.0.0"
+  }
+}
