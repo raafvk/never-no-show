@@ -140,7 +140,7 @@ function TenantCheckForm() {
                 name="fullName"
                 value={formData.fullName || ''}
                 onChange={handleInputChange}
-                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm text-black focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
                   errors.fullName ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Enter your full name"
@@ -161,7 +161,7 @@ function TenantCheckForm() {
                 name="email"
                 value={formData.email || ''}
                 onChange={handleInputChange}
-                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm text-black focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
                   errors.email ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Enter your email address"
@@ -182,7 +182,7 @@ function TenantCheckForm() {
                 name="phoneNumber"
                 value={formData.phoneNumber || ''}
                 onChange={handleInputChange}
-                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm text-black focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
                   errors.phoneNumber ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Enter your phone number"
@@ -218,7 +218,7 @@ function TenantCheckForm() {
                 rows={4}
                 value={formData.additionalComments || ''}
                 onChange={handleInputChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-black focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Any additional information you'd like to share..."
               />
             </div>
