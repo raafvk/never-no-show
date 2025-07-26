@@ -94,7 +94,10 @@ class AzureSQLService {
                         email NVARCHAR(255) PRIMARY KEY,
                         name NVARCHAR(255),
                         createdAt DATETIME2 DEFAULT GETUTCDATE(),
-                        lastSubmission DATETIME2
+                        lastSubmission DATETIME2,
+                        currentScore DECIMAL(5,2) DEFAULT NULL,
+                        submissionCount INT DEFAULT 0,
+                        averageScore DECIMAL(5,2) DEFAULT NULL
                     )
                 END
             `);

@@ -12,20 +12,10 @@ function validateForm(formData) {
         errors.email = 'Valid email address is required';
     }
     
-    if (!formData.phone || formData.phone.length < 10) {
-        errors.phone = 'Valid phone number is required (minimum 10 digits)';
-    }
-    
-    if (!formData.currentAddress || formData.currentAddress.trim().length < 5) {
-        errors.currentAddress = 'Current address is required (minimum 5 characters)';
-    }
-    
-    if (!formData.employmentStatus) {
-        errors.employmentStatus = 'Employment status is required';
-    }
-    
-    if (!formData.monthlyIncome || isNaN(formData.monthlyIncome) || formData.monthlyIncome <= 0) {
-        errors.monthlyIncome = 'Valid monthly income is required';
+    // More flexible phone validation - accept 7+ digits (covers most international formats)
+    const phoneDigits = formData.phoneNumber ? formData.phoneNumber.replace(/\D/g, '') : '';
+    if (!phoneDigits || phoneDigits.length < 7) {
+        errors.phoneNumber = 'Valid phone number is required (minimum 7 digits)';
     }
     
     if (!formData.landlordId) {
@@ -241,11 +231,13 @@ module.exports = async function (context, req) {
 
     try {
         context.log('Processing tenant form submission...');
+        context.log('Request body:', JSON.stringify(req.body, null, 2));
         
         const formData = req.body;
         
         // Validate form data
         const validationErrors = validateForm(formData);
+        context.log('Validation errors:', validationErrors);
         if (validationErrors) {
             context.res = {
                 status: 400,
@@ -286,6 +278,39 @@ module.exports = async function (context, req) {
         // Calculate credibility score and risk assessment
         const score = calculateCredibilityScore(formData);
         const risk = assessNoShowRisk(formData, score);
+
+        // Handle tenant record (create or update with credibility scoring)
+        try {
+            const existingTenant = await database.getTenant(formData.email);
+            if (existingTenant) {
+                // Update existing tenant with new score
+                const newSubmissionCount = (existingTenant.submissionCount || 0) + 1;
+                const currentAverage = existingTenant.averageScore || 0;
+                const newAverage = ((currentAverage * (newSubmissionCount - 1)) + score.percentage) / newSubmissionCount;
+                
+                await database.updateTenant(formData.email, {
+                    name: formData.fullName,
+                    lastSubmission: new Date().toISOString(),
+                    currentScore: score.percentage,
+                    submissionCount: newSubmissionCount,
+                    averageScore: Math.round(newAverage * 100) / 100
+                });
+            } else {
+                // Create new tenant with initial score
+                await database.createTenant({
+                    email: formData.email,
+                    name: formData.fullName,
+                    createdAt: new Date().toISOString(),
+                    lastSubmission: new Date().toISOString(),
+                    currentScore: score.percentage,
+                    submissionCount: 1,
+                    averageScore: score.percentage
+                });
+            }
+        } catch (tenantError) {
+            context.log.warn('Error handling tenant record:', tenantError);
+            // Continue with submission even if tenant handling fails
+        }
 
         // Create submission record
         const submission = {
