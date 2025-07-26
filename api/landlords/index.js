@@ -1,31 +1,66 @@
-// Sample landlord data
-const landlords = new Map([
-  ['abc123', { id: 'abc123', email: 'john.doe@example.com', name: 'John Doe' }],
-  ['def456', { id: 'def456', email: 'jane.smith@example.com', name: 'Jane Smith' }],
-  ['ghi789', { id: 'ghi789', email: 'demo@landlord.com', name: 'Demo Landlord' }],
-]);
+const database = require('../shared/database');
 
 module.exports = async function (context, req) {
-    const landlordId = req.params.landlordId || context.bindingData.landlordId;
-    const landlord = landlords.get(landlordId);
-    
-    if (landlord) {
+    try {
+        const landlordId = req.params.landlordId || context.bindingData.landlordId;
+        
+        if (!landlordId) {
+            context.res = {
+                status: 400,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type'
+                },
+                body: {
+                    exists: false,
+                    message: 'Landlord ID is required'
+                }
+            };
+            return;
+        }
+
+        // Validate landlord exists in database
+        const landlord = await database.validateLandlord(landlordId);
+        
+        if (landlord) {
+            context.res = {
+                status: 200,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type'
+                },
+                body: {
+                    exists: true,
+                    landlord: {
+                        id: landlord.id,
+                        name: landlord.name,
+                        email: landlord.email
+                    }
+                }
+            };
+        } else {
+            context.res = {
+                status: 200,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type'
+                },
+                body: {
+                    exists: false,
+                    message: 'Landlord not found'
+                }
+            };
+        }
+    } catch (error) {
+        console.error('Error in landlords function:', error);
         context.res = {
-            status: 200,
-            headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type'
-            },
-            body: {
-                exists: true,
-                landlord: landlord
-            }
-        };
-    } else {
-        context.res = {
-            status: 200,
+            status: 500,
             headers: {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*',
@@ -34,7 +69,7 @@ module.exports = async function (context, req) {
             },
             body: {
                 exists: false,
-                message: 'Landlord not found'
+                message: 'Internal server error'
             }
         };
     }

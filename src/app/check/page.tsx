@@ -29,8 +29,9 @@ function TenantCheckForm() {
       return;
     }
 
-    // Validate landlord ID
-    fetch(`/api/landlords/${landlordId}`)
+    // Validate landlord ID using Azure Functions API
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:7071/api';
+    fetch(`${apiUrl}/landlords/${landlordId}`)
       .then(res => res.json())
       .then(data => {
         setIsValidLandlord(data.exists);
@@ -71,7 +72,8 @@ function TenantCheckForm() {
     }
 
     try {
-      const response = await fetch('/api/submissions', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:7071/api';
+      const response = await fetch(`${apiUrl}/submissions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

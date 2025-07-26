@@ -16,7 +16,7 @@ A Next.js TypeScript application that helps landlords assess tenant credibility 
 
 - **Frontend**: Next.js 15, React 19, TypeScript
 - **Styling**: Tailwind CSS
-- **Database**: In-memory simulation (ready for Firebase/DB integration)
+- **Database**: Azure SQL Database (Free Tier) with local JSON fallback
 - **API**: Next.js API routes
 - **Validation**: Custom form validation with error handling
 
@@ -33,7 +33,7 @@ src/
 │   ├── layout.tsx                           # App layout
 │   └── page.tsx                             # Home page
 ├── lib/
-│   └── database.ts                          # In-memory database simulation
+│   └── database.ts                          # Local database simulation
 ├── types/
 │   └── index.ts                            # TypeScript interfaces
 └── utils/
@@ -145,7 +145,7 @@ vercel deploy
 ## 🔮 Future Enhancements
 
 - **Email Integration**: Real email notifications using SendGrid/Nodemailer
-- **Database Integration**: Replace in-memory DB with Firebase/PostgreSQL
+- **Database Integration**: Azure SQL Database with production-ready persistence
 - **Machine Learning**: Advanced ML models for better risk assessment
 - **Dashboard**: Landlord dashboard to view all submissions
 - **Authentication**: User authentication and authorization

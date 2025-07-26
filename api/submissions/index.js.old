@@ -1,0 +1,236 @@
+const { validateLandlord, saveSubmission } = require('../shared/database');
+
+// Validation and scoring functions
+function validateForm(formData) {
+    const errors = {};
+    
+    if (!formData.fullName || formData.fullName.trim().length < 2) {
+        errors.fullName = 'Full name is required (minimum 2 characters)';
+    }
+    
+    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        errors.email = 'Valid email address is required';
+    }
+    
+    if (!formData.phoneNumber || !/^\+?[\d\s\-\(\)]{10,}$/.test(formData.phoneNumber)) {
+        errors.phoneNumber = 'Valid phone number is required';
+    }
+    
+    if (!formData.landlordId) {
+        errors.landlordId = 'Landlord ID is required';
+    }
+    
+    return errors;
+}
+
+function calculateCredibilityScore(formData, tenantHistory = []) {
+    let score = 50; // Base score
+    
+    // Contact quality factors (30%)
+    if (formData.email && formData.email.includes('.com')) score += 10;
+    if (formData.phoneNumber && formData.phoneNumber.length >= 10) score += 10;
+    if (formData.fullName && formData.fullName.split(' ').length >= 2) score += 10;
+    
+    // Historical data factors (40%)
+    if (tenantHistory.length > 0) {
+        const averageHistoricalScore = tenantHistory.reduce((sum, submission) => {
+            return sum + (submission.credibilityScore?.overall || 50);
+        }, 0) / tenantHistory.length;
+        
+        // Give weight to historical performance
+        score = (score * 0.6) + (averageHistoricalScore * 0.4);
+        
+        // Penalty for previous no-shows
+        const noShowCount = tenantHistory.filter(submission => 
+            submission.actualOutcome?.attended === false
+        ).length;
+        
+        if (noShowCount > 0) {
+            score -= (noShowCount * 15); // -15 points per no-show
+        }
+    }
+    
+    // Communication quality (20%)
+    if (formData.additionalComments && formData.additionalComments.trim().length > 20) {
+        score += 5;
+    }
+    
+    // Self-reported no-show penalty (10%)
+    if (formData.previousNoShow) score -= 20;
+    
+    // Ensure score is between 0 and 100
+    return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function determineNoShowRisk(score, formData, tenantHistory = []) {
+    // Check for previous actual no-shows
+    const actualNoShows = tenantHistory.filter(submission => 
+        submission.actualOutcome?.attended === false
+    ).length;
+    
+    if (actualNoShows > 1 || formData.previousNoShow) return 'high';
+    if (actualNoShows === 1) return 'medium';
+    if (score >= 75) return 'low';
+    if (score >= 50) return 'medium';
+    return 'high';
+}
+
+module.exports = async function (context, req) {
+    try {
+        const formData = req.body;
+        
+        // Validate form data
+        const validationErrors = validateForm(formData);
+        if (Object.keys(validationErrors).length > 0) {
+            context.res = {
+                status: 400,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type'
+                },
+                body: {
+                    success: false,
+                    message: 'Validation errors',
+                    errors: validationErrors
+                }
+            };
+            return;
+        }
+
+        // Verify landlord exists
+        const landlord = await validateLandlord(formData.landlordId);
+        if (!landlord) {
+            context.res = {
+                status: 400,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type'
+                },
+                body: {
+                    success: false,
+                    message: 'Invalid landlord ID'
+                }
+            };
+            return;
+        }
+
+        // Get or create tenant
+        let tenant = await cosmosService.getTenant(formData.email);
+        const tenantHistory = await cosmosService.getTenantHistory(formData.email);
+        
+        if (!tenant) {
+            // Create new tenant
+            tenant = {
+                id: formData.email, // Use email as ID for partition key
+                email: formData.email,
+                fullName: formData.fullName,
+                phoneNumber: formData.phoneNumber,
+                totalApplications: 1,
+                noShowCount: 0,
+                averageCredibilityScore: 50,
+                blacklisted: false,
+                createdAt: new Date().toISOString(),
+                lastActive: new Date().toISOString(),
+                reputationScore: 50
+            };
+            
+            tenant = await cosmosService.createTenant(tenant);
+        } else {
+            // Update existing tenant
+            tenant.fullName = formData.fullName; // Update in case name changed
+            tenant.phoneNumber = formData.phoneNumber;
+            tenant.totalApplications = (tenant.totalApplications || 0) + 1;
+            tenant.lastActive = new Date().toISOString();
+            
+            tenant = await cosmosService.updateTenant(formData.email, tenant);
+        }
+
+        // Calculate credibility score with historical data
+        const score = calculateCredibilityScore(formData, tenantHistory);
+        const risk = determineNoShowRisk(score, formData, tenantHistory);
+        
+        // Create submission
+        const submission = {
+            id: Math.random().toString(36).substr(2, 9),
+            landlordId: formData.landlordId,
+            tenantEmail: formData.email,
+            tenantData: formData,
+            credibilityScore: {
+                overall: score,
+                factors: {
+                    contactInfo: formData.email && formData.phoneNumber ? 'good' : 'poor',
+                    previousHistory: tenantHistory.length > 0 ? 'available' : 'new_tenant',
+                    communication: formData.additionalComments ? 'provided' : 'minimal'
+                }
+            },
+            noShowRisk: risk,
+            submittedAt: new Date().toISOString(),
+            status: 'pending'
+        };
+
+        // Save submission to database
+        const savedSubmission = await saveSubmission(submission);
+        
+        // Update tenant's average credibility score
+        const allSubmissions = await cosmosService.getTenantHistory(formData.email);
+        const averageScore = allSubmissions.reduce((sum, sub) => {
+            return sum + (sub.credibilityScore?.overall || 50);
+        }, 0) / allSubmissions.length;
+        
+        tenant.averageCredibilityScore = Math.round(averageScore);
+        await cosmosService.updateTenant(formData.email, tenant);
+        
+        // Update landlord statistics
+        landlord.totalSubmissions = (landlord.totalSubmissions || 0) + 1;
+        await cosmosService.updateLandlord(formData.landlordId, landlord);
+        
+        // Log for landlord notification (in real app, send email)
+        console.log(`New tenant submission for landlord ${formData.landlordId}:`, {
+            submissionId: savedSubmission.id,
+            tenantEmail: formData.email,
+            credibilityScore: score,
+            risk: risk,
+            isReturningTenant: tenantHistory.length > 0
+        });
+        
+        context.res = {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type'
+            },
+            body: {
+                success: true,
+                message: 'Submission received successfully',
+                submissionId: savedSubmission.id,
+                tenantInfo: {
+                    isReturningTenant: tenantHistory.length > 0,
+                    totalApplications: tenant.totalApplications,
+                    averageScore: tenant.averageCredibilityScore
+                }
+            }
+        };
+        
+    } catch (error) {
+        console.error('Error processing submission:', error);
+        context.res = {
+            status: 500,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type'
+            },
+            body: {
+                success: false,
+                message: 'Internal server error'
+            }
+        };
+    }
+};

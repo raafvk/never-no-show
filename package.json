@@ -11,7 +11,8 @@
     "type-check": "tsc --noEmit",
     "test:build": "npm run lint && npm run type-check && npm run build",
     "clean": "rm -rf .next out",
-    "prepare": "husky"
+    "prepare": "husky",
+    "deploy:setup": "echo 'Please run ./setup-github-secrets.sh to configure deployment'"
   },
   "dependencies": {
     "next": "15.4.2",
